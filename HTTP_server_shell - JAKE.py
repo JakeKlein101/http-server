@@ -12,10 +12,36 @@ PORT = 80
 DEFAULT_URL = "index.html"
 REDIRECTION_DICTIONARY = []
 SOCKET_TIMEOUT = 1
-SITE_FUNCTIONS = {'calculate-next': 'calculate_next', "calculate-area": "calculate_area", 'upload': 'upload_file'}
+SITE_FUNCTIONS = {'calculate-next': 'calculate_next', "calculate-area": "calculate_area",
+                  'upload': 'upload_file', 'image': 'get_image'}
+
+TEXT_HTTP_HEADER = b'HTTP/1.1 ' + b'200 OK' + b"\n" +\
+                          b"Content-Type: text/html; charset=utf-8" + b'\n'\
+                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'
+
+JPG_HTTP_HEADER = b'HTTP/1.1 ' + b'200 OK' + b'\n' + b"Content-Type: image/jpg"\
+                          + b'\n' + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'
+
+JS_HTTP_HEADER = b'HTTP/1.1 ' + b'200 OK' + b'\n' + \
+                          b"Content-Type: text/javascript; charset=UTF-8; charset=utf-8"\
+                          + b'\n' \
+                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'
+
+CSS_HTTP_HEADER = b'HTTP/1.1 ' + b'200 OK' + b'\n' + b"Content-Type: text/css; charset=utf-8" + b'\n'\
+                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'
+
+ICO_HTTP_HEADER = b'HTTP/1.1 ' + b'200 OK' + b'\n' + \
+                          b"Content-Type: image/x-icon; charset=UTF-8; charset=utf-8" \
+                          + b'\n' \
+                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'
 
 
 class Functions:
+    @staticmethod
+    def get_image(image_name):
+        with open("webroot/" + image_name + ".jpg", "rb") as file:
+            return file.read()
+
     @ staticmethod
     def calculate_next(num):
         return int(num) + 1
@@ -76,27 +102,15 @@ def handle_client_request(resource, client_socket):
         # TO DO: extract requested file tupe from URL (html, jpg etc)
         filetype = get_file_type(url)
         if filetype == 'html':
-            http_header = b'HTTP/1.1 ' + b'200 OK' + b"\n" +\
-                          b"Content-Type: text/html; charset=utf-8" + b'\n'\
-                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'  # TO DO: generate proper HTTP header
+            http_header = TEXT_HTTP_HEADER
         elif filetype == 'jpg':
-            http_header = b'HTTP/1.1 ' + b'200 OK' + b'\n' + b"Content-Type: image/jpg"\
-                          + b'\n' + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'
-            # TO DO: generate proper HTTP header
+            http_header = JPG_HTTP_HEADER
         elif filetype == 'css':
-            http_header = b'HTTP/1.1 ' + b'200 OK' + b'\n' + b"Content-Type: text/css; charset=utf-8" + b'\n'\
-                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'  # TO DO: generate proper HTTP header
+            http_header = CSS_HTTP_HEADER
         elif filetype == "js":
-            http_header = b'HTTP/1.1 ' + b'200 OK' + b'\n' + \
-                          b"Content-Type: text/javascript; charset=UTF-8; charset=utf-8"\
-                          + b'\n' \
-                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'  # TO DO: generate proper HTTP header
+            http_header = JS_HTTP_HEADER
         elif filetype == "ico":
-            http_header = b'HTTP/1.1 ' + b'200 OK' + b'\n' + \
-                          b"Content-Type: image/x-icon; charset=UTF-8; charset=utf-8" \
-                          + b'\n' \
-                          + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'  # TO DO: generate proper HTTP header
-
+            http_header = ICO_HTTP_HEADER
         else:
             http_header = b"pycharm is annoying"
         data = get_file_data(url)  # TO DO: read the data from the file
@@ -113,9 +127,10 @@ def handle_client_request(resource, client_socket):
         params = get_params(params)
         print(*params)
         file_data = str(func(*params)).encode()
-        http_header = b'HTTP/1.1 ' + b'200 OK' + b"\n" +\
-                      b"Content-Type: text/html; charset=utf-8" + b'\n'\
-                      + b'Connection: Keep-Alive\nServer: YOGEV\n' + b'\n'
+        if func_name == "image":
+            http_header = JPG_HTTP_HEADER
+        else:
+            http_header = TEXT_HTTP_HEADER
         http_response = http_header + file_data
         client_socket.send(http_response)
 
@@ -143,11 +158,9 @@ def handle_client(client_socket):
     print('Client connected')
     while True:
         client_request = (client_socket.recv(1024).decode())
-        print(client_request)
         valid_http, resource = validate_http_request(client_request)
         if valid_http:
             print('Got a valid HTTP request')
-            print(resource)
             handle_client_request(resource, client_socket)
         else:
             print('Error: Not a valid HTTP request')
