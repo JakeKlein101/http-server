@@ -52,9 +52,8 @@ class Functions:
 
     @staticmethod
     def upload_file(filename):  # working on supporting the post protocol
-        pass
         with open("pic", "wb") as file:
-            file.write()
+            file.write(filename)
 
 
 def get_params(params):
